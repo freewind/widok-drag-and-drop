@@ -1,0 +1,13 @@
+.box {
+    width: 500px;
+    height: 200px;
+    border: 1px solid #EEEEEE;
+}
+
+.dragging {
+    border: 3px solid red;
+}
+
+.dragover {
+    background-color: yellow;
+}
