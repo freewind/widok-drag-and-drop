@@ -7,11 +7,11 @@ import org.widok.html._
 
 object Main extends PageApplication {
 
-  val userOnDragging = Var(Option.empty[User])
+  val userOnDragging = Opt[User]()
 
-  case class User(name: String, image: Option[String])
+  case class User(name: String, image: Opt[String])
 
-  val users = Buffer[User](User("Jack", None), User("Mike", Some("images/aaa.jpeg")), User("Jeff", None))
+  val users = Buffer[User](User("Jack", Opt()), User("Mike", Opt("images/aaa.jpeg")), User("Jeff", Opt()))
 
   def view() = div(
     div(
@@ -19,7 +19,7 @@ object Main extends PageApplication {
       p("Drag the image into another box!")
     ),
     div(
-      users.map(user => MyBox(user))
+      users.map(user => div(new MyBox(user), user.image))
     )
   )
 
@@ -27,23 +27,18 @@ object Main extends PageApplication {
     log("Page loaded.")
   }
 
-
-  object MyBox {
-    def apply(user: User) = {
-
-      def toImage(src: String) = {
-        val image = new MyImage(src)
-        image.onDragStart(_ => userOnDragging := Some(user))
-        image.onDragEnd(_ => userOnDragging := None)
+  def toImage(user: User) = {
+    user.image.map { img =>
+      val image = new MyImage(img)
+      image.isDragging.attach {
+        if (_) userOnDragging := user
+        else userOnDragging.clear()
       }
-
-      val image = user.image.map(toImage).getOrElse(span())
-
-      new MyBox(user, image)
+      image
     }
   }
 
-  class MyBox(user: User, image: View) extends Generic(image) {
+  class MyBox(user: User) extends Generic(toImage(user)) {
     private val dragover = Var(false)
     css("box")
     cssState(dragover, "dragover")
@@ -53,14 +48,17 @@ object Main extends PageApplication {
     onDrop { e =>
       e.preventDefault()
       dragover := false
-      for {
-        draggingU <- userOnDragging.get
-        if draggingU != user
-      } {
-        users.replace(user, user.copy(image = draggingU.image))
-        users.replace(draggingU, draggingU.copy(image = None))
+      if (!userOnDragging.contains$(user)) {
+        val src = userOnDragging.get
+        user.image := src.image.get
+        src.image.clear()
       }
     }
+    //    onClick {
+    //      _ =>
+    //        println("########### on click, the image should be removed !!!!")
+    //        user.image.clear()
+    //    }
   }
 
   class MyImage(src: String) extends Image(src) {
@@ -73,6 +71,7 @@ object Main extends PageApplication {
     onDragEnd { _ =>
       dragging := false
     }
+    def isDragging: ReadChannel[Boolean] = dragging
   }
 
 }
