@@ -19,7 +19,7 @@ object Main extends PageApplication {
       p("Drag the image into another box!")
     ),
     div(
-      users.map(user => div(new MyBox(user), user.image))
+      users.map(user => div(box(user), user.image.values.map(_.toString)))
     )
   )
 
@@ -27,33 +27,37 @@ object Main extends PageApplication {
     log("Page loaded.")
   }
 
-  def toImage(user: User) = {
-    user.image.map { img =>
-      val image = new MyImage(img)
-      image.isDragging.attach {
-        if (_) userOnDragging := user
-        else userOnDragging.clear()
-      }
-      image
+  def toImage(user: User): Widget[_] = {
+    user.image.values.map {
+      case Some(img) =>
+        val image = new MyImage(img)
+        image.isDragging.attach {
+          if (_) userOnDragging := user
+          else userOnDragging.clear()
+        }
+        image
+      case None => span()
     }
   }
 
-  class MyBox(user: User) extends Generic(toImage(user)) {
-    private val dragover = Var(false)
-    css("box")
-    cssState(dragover, "dragover")
-    onDragEnter(_ => dragover := true)
-    onDragOver(e => e.preventDefault())
-    onDragLeave(_ => dragover := false)
-    onDrop { e =>
-      e.preventDefault()
-      dragover := false
-      if (!userOnDragging.contains$(user)) {
-        val src = userOnDragging.get
-        user.image := src.image.get
-        src.image.clear()
+  def box(user: User) = {
+    val dragover = Var(false)
+
+    div(toImage(user))
+      .css("box")
+      .cssState(dragover, "dragover")
+      .onDragEnter(_ => dragover := true)
+      .onDragOver(e => e.preventDefault())
+      .onDragLeave(_ => dragover := false)
+      .onDrop { e =>
+        e.preventDefault()
+        dragover := false
+        if (!userOnDragging.contains$(user)) {
+          val src = userOnDragging.get
+          user.image := src.image.get
+          src.image.clear()
+        }
       }
-    }
     //    onClick {
     //      _ =>
     //        println("########### on click, the image should be removed !!!!")
@@ -75,8 +79,3 @@ object Main extends PageApplication {
   }
 
 }
-
-
-
-
-
