@@ -26,53 +26,38 @@ object Main extends PageApplication {
     log("Page loaded.")
   }
 
-  def toImage(user: User): Widget[_] = {
-    user.image.values.map {
-      case Some(img) =>
-        val image = new MyImage(img)
-        image.isDragging.attach {
-          if (_) userOnDragging := user
-          else userOnDragging.clear()
-        }
-        image
-      case None => span()
-    }
-  }
-
   def box(user: User) = {
     val dragover = Var(false)
 
-    div(toImage(user))
+    div(MyImage(user))
       .css("box")
       .cssState(dragover, "dragover")
       .onDragEnter(_ => dragover := true)
       .onDragOver(e => e.preventDefault())
       .onDragLeave(_ => dragover := false)
       .onDrop { e =>
-        e.preventDefault()
-        dragover := false
-        if (!userOnDragging.contains$(user)) {
-          val src = userOnDragging.get
-          user.image := src.image.get
-          src.image.clear()
-        }
+      e.preventDefault()
+      dragover := false
+      if (!userOnDragging.contains$(user)) {
+        val src = userOnDragging.get
+        user.image := src.image.get
+        src.image.clear()
       }
-    //    onClick {
-    //      _ =>
-    //        println("########### on click, the image should be removed !!!!")
-    //        user.image.clear()
-    //    }
+    }
   }
 
   object MyImage {
-    def apply(user: User): ReadChannel[MyImage] = {
-      user.image.map { img =>
-        val image = new MyImage(img)
-        image.isDragging.attach {
-          if (_) userOnDragging := user
-          else userOnDragging.clear()
+    def apply(user: User): Widget[_] = {
+      user.image.values.map {
+        case Some(img) => {
+          val image = new MyImage(img)
+          image.isDragging.attach {
+            if (_) userOnDragging := user
+            else userOnDragging.clear()
+          }
+          image
         }
-        image
+        case None => span()
       }
     }
   }
